@@ -75,7 +75,7 @@ if Z_percent and S_MVA and Vbase_kV and Vtest_V:
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Z (pu)", f"{Z_pu:.4f}")
         c2.metric("V (pu)", f"{V_pu:.4f}")
-        c3.metric("I_base [A]", f"{I_base_A:,.2f}")
+        c3.metric("I base [A]", f"{I_base_A:,.2f}")
         c4.metric("Icc (ensaio) [A]", f"{I_cc_A:,.2f}")
 
         st.divider()
