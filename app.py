@@ -53,7 +53,7 @@ def mag_ang(z):
     ang = (ang + 180) % 360 - 180  # normaliza para [-180,180]
     return mag, ang
 
-if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V and :
+if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
 # -------------------------
 # CÁLCULO + PLOT + TABELA
 # -------------------------
