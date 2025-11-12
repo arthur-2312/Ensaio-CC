@@ -62,10 +62,14 @@ if Z_percent and S_MVA and Vbase_kV and Vtest_V:
         Z_pu    = Z_percent / 100.0
         S_VA    = S_MVA * 1e6
         Vbase_kV = 0
+
         if lado_ensaio == "AT":
             Vbase_kV = VAT
-            else Vbase_kV = VBT
+        else:
+            Vbase_kV = VBT
+
         Vbase_V = Vbase_kV * 1000.0
+
 
         # Tensão em pu referida à base informada
         V_pu = Vtest_V / Vbase_V
