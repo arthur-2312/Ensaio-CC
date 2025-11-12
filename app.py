@@ -11,7 +11,7 @@ st.set_page_config(page_title="Ensaio de Curto transformador Dyn1", layout="wide
 st.title("Ensaio de Curto transformador Dyn1")
 
 st.markdown(
-    "Preencha os dados e clique em **Calcular**. "
+    "Preencha os dados e clique em em **Calcular**. "
 )
 
 # -------------------------
