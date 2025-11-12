@@ -133,5 +133,32 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
             st.warning("⚠️ Atenção: As fases do primário não parecem estar defasadas corretamente (120°).")
         else:
             st.success("✅ Sequência do primário parece correta.")
+    # -------------------------
+    # PERGUNTA SOBRE AS FASES
+    # -------------------------
+    st.subheader("As fases bateram?")
+    fase_ok = st.radio("Selecione:", ["Sim", "Não"])
     
+    if fase_ok == "Não":
+        st.markdown("Informe como as fases foram encontradas no **secundário**:")
+        col1, col2, col3 = st.columns(3)
+        fase_sec_A = col1.selectbox("Posição da fase A:", ["A", "B", "C"])
+        fase_sec_B = col2.selectbox("Posição da fase B:", ["A", "B", "C"])
+        fase_sec_C = col3.selectbox("Posição da fase C:", ["A", "B", "C"])
     
+        # Diagnóstico
+        esperado = ["A", "B", "C"]  # sequência correta
+        achado = [fase_sec_A, fase_sec_B, fase_sec_C]
+    
+        erros = []
+        for i, (exp, ach) in enumerate(zip(esperado, achado)):
+            if exp != ach:
+                erros.append(f"A fase {exp} está na posição da {ach}")
+    
+        if erros:
+            st.error("⚠️ Problemas encontrados:")
+            for e in erros:
+                st.write(f"- {e}")
+        else:
+            st.success("✅ As fases estão corretas!")
+        
