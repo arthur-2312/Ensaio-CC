@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 # CONFIG & TÍTULO
 # -------------------------
 st.set_page_config(page_title="ENSAIO DE CURTO ", layout="wide")
-st.title("senta pro treeeeeeeeeem")
+st.title("Ensaio de Curto")
 
 st.markdown(
-    "Preencha os dados e clique em em **Calcular**. "
+    "Preencha os dados e clique em **Calcular**. "
 )
 
 # -------------------------
@@ -23,7 +23,8 @@ with st.form("inputs"):
         Z_percent = st.number_input("Impedância percentual Z%:", min_value=0.1, max_value=100.0, value=None, step=0.01)
         S_MVA     = st.number_input("Potência nominal S [MVA]:", min_value=0.1, max_value=1000.0, value=None, step=0.1)
     with c2:
-        Vbase_kV  = st.number_input("Tensão base (Tensão nominal do trafo no lado do ensaio) [kV]:", min_value=0.1, max_value=50000.0, value=None, step=0.1)
+        VBT  = st.number_input("Tensão nominal do lado de Baixa [kV]:", min_value=0.1, max_value=50000.0, value=None, step=0.1)
+        VAT  = st.number_input("Tensão nominal do lado de Alta [kV]:", min_value=0.1, max_value=50000.0, value=None, step=0.1)
         Vtest_V   = st.number_input("Tensão aplicada no ensaio de curto [V]:", min_value=1.0, max_value=50000.0, value=None, step=10.0)
 
 
