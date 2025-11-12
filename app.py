@@ -90,77 +90,48 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
             I_fase_A = I_cc_A
         
         c1, c2 = st.columns(2)
-        c1.metric("Corrente de Linha [A]", f"{I_cc_A:,.2f}")
-        c2.metric("Corrente de Fase [A]", f"{I_fase_A:,.2f}")
+        c1.metric("Corrente de Linha (Fase-Fase) [A]", f"{I_cc_A:,.2f}")
+        c2.metric("Corrente de Fase (Fase-Terra) [A]", f"{I_fase_A:,.2f}")
 
-
-        # ---- Diagrama fasorial Dyn1
-        st.subheader("Diagrama Fasorial Dyn1")
-        st.caption("AT (vermelho) e BT (azul). Linhas tracejadas tensões de linha")
-
-        # Magnitudes para o desenho (pu). Aqui deixamos normalizado (=1.0).
-        mag_HV = 1.0
-        mag_LV = 1.0
-
-        # Fases HV (0°, -120°, +120°); LV (Dyn1) = HV - 30°
-        ang_HV = np.array([0.0, -120.0, 120.0])
-        ang_LV = ang_HV - 30.0
-
-        xH, yH = phasor_xy(mag_HV, ang_HV)   # VA, VB, VC (pu)
-        xL, yL = phasor_xy(mag_LV, ang_LV)   # Va, Vb, Vc (pu)
-
-        # Linha-linha (complexos)
-        VLL_H = line_to_line_from_phases(xH, yH)  # VAB, VBC, VCA
-        VLL_L = line_to_line_from_phases(xL, yL)  # vab, vbc, vca
-
-        col_plot, col_table = st.columns([3, 2])
-
-        with col_plot:
-            fig, ax = plt.subplots(figsize=(7,7))
-
-            # HV (vermelho)
-            for xi, yi, lab in zip(xH, yH, ["VA","VB","VC"]):
-                ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
-                ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=10)
-
-            # LV (azul)
-            for xi, yi, lab in zip(xL, yL, ["Va","Vb","Vc"]):
-                ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
-                ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=10)
-
-            # LL tracejados
-            for comp, name in zip(VLL_H, ["VAB","VBC","VCA"]):
-                ax.plot([0, comp.real], [0, comp.imag], linestyle="--", linewidth=1.8, color="red")
-                ax.text(comp.real*1.06, comp.imag*1.06, name, color="red", fontsize=9)
-            for comp, name in zip(VLL_L, ["vab","vbc","vca"]):
-                ax.plot([0, comp.real], [0, comp.imag], linestyle="--", linewidth=1.8, color="blue")
-                ax.text(comp.real*1.06, comp.imag*1.06, name, color="blue", fontsize=9)
-
-            # Eixos e grid
-            ax.axhline(0, color="black", linewidth=1)
-            ax.axvline(0, color="black", linewidth=1)
-            ax.set_aspect("equal", adjustable="box")
-            ax.set_xlabel("Real")
-            ax.set_ylabel("Imag")
-            ax.grid(True, linestyle=":")
-
-
-            st.pyplot(fig)
-
-        with col_table:
-            # Monta a tabela com todas as grandezas
-            phasors = {
-                "VA":  xH[0]+1j*yH[0], "VB": xH[1]+1j*yH[1], "VC": xH[2]+1j*yH[2],
-                "Va":  xL[0]+1j*yL[0], "Vb": xL[1]+1j*yL[1], "Vc": xL[2]+1j*yL[2],
-                "VAB": VLL_H[0], "VBC": VLL_H[1], "VCA": VLL_H[2],
-                "vab": VLL_L[0], "vbc": VLL_L[1], "vca": VLL_L[2],
-            }
-            rows = []
-            for name, z in phasors.items():
-                m, a = mag_ang(z)
-                rows.append({"Fasor": name, "Ângulo (°)": round(a, 1)})
-
-            df = pd.DataFrame(rows)
-            st.markdown("**Ângulos e Magnitudes (pu)**")
-            st.dataframe(df, hide_index=True)
-
+# -------------------------
+# NOVO FORMULÁRIO PARA ÂNGULOS DE CORRENTE
+# -------------------------
+    st.subheader("Verificação de Ligação dos TC's")
+    st.markdown("Informe os ângulos medidos no **primário** (em graus):")
+    
+    with st.form("tc_check"):
+        col1, col2, col3 = st.columns(3)
+        ang_IA = col1.number_input("Ângulo IA (°):", min_value=-180.0, max_value=180.0, step=1.0)
+        ang_IB = col2.number_input("Ângulo IB (°):", min_value=-180.0, max_value=180.0, step=1.0)
+        ang_IC = col3.number_input("Ângulo IC (°):", min_value=-180.0, max_value=180.0, step=1.0)
+    
+        btn_tc = st.form_submit_button("Verificar")
+    
+    if btn_tc:
+        # Ângulos primário
+        prim_angles = np.array([ang_IA, ang_IB, ang_IC])
+    
+        # Esperado no secundário (Dyn1 = desloca -30°)
+        sec_angles = prim_angles - 30.0
+        sec_angles = (sec_angles + 180) % 360 - 180  # normaliza para [-180,180]
+    
+        # Monta tabela
+        rows = []
+        fases = ["IA", "IB", "IC"]
+        fases_sec = ["Ia", "Ib", "Ic"]
+        for f1, f2, a1, a2 in zip(fases, fases_sec, prim_angles, sec_angles):
+            rows.append({"Fase Primário": f1, "Ângulo Primário (°)": round(a1, 1),
+                         "Fase Secundário": f2, "Ângulo Esperado (°)": round(a2, 1)})
+    
+        df_tc = pd.DataFrame(rows)
+        st.markdown("**Tabela de Verificação dos TC's**")
+        st.dataframe(df_tc, hide_index=True)
+    
+        # Alerta se diferença entre fases não for ~120°
+        diffs = np.diff(sorted(prim_angles))
+        if not all(abs(d - 120) < 10 for d in diffs):  # tolerância de 10°
+            st.warning("⚠️ Atenção: As fases do primário não parecem estar defasadas corretamente (120°).")
+        else:
+            st.success("✅ Sequência do primário parece correta.")
+    
+    
