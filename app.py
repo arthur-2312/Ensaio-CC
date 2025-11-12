@@ -81,14 +81,18 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         # Corrente do ensaio
         I_cc_A = I_pu * I_base_A
 
-        st.subheader("Resultados do Ensaio de Curto")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Z (pu)", f"{Z_pu:.4f}")
-        c2.metric("V (pu)", f"{V_pu:.4f}")
-        c3.metric("I base [A]", f"{I_base_A:,.2f}")
-        c4.metric("Icc (ensaio) [A]", f"{I_cc_A:,.2f}")
+        st.subheader("Corrente de Curto-Circuito")
+        
+        # Calcula corrente de fase
+        if lado_ensaio == "AT":  # AT é delta
+            I_fase_A = I_cc_A / SQRT3
+        else:  # BT é estrela
+            I_fase_A = I_cc_A
+        
+        c1, c2 = st.columns(2)
+        c1.metric("Corrente de Linha [A]", f"{I_cc_A:,.2f}")
+        c2.metric("Corrente de Fase [A]", f"{I_fase_A:,.2f}")
 
-        st.divider()
 
         # ---- Diagrama fasorial Dyn1
         st.subheader("Diagrama Fasorial Dyn1")
