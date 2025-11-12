@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 # -------------------------
 # CONFIG & TÍTULO
 # -------------------------
-st.set_page_config(page_title="LUIS GUSTAVO ", layout="wide")
-st.title("Ensaio de Curto transformador Dyn1")
+st.set_page_config(page_title="ENSAIO DE CURTO ", layout="wide")
+st.title("senta pro treeeeeeeeeem")
 
 st.markdown(
     "Preencha os dados e clique em em **Calcular**. "
