@@ -61,7 +61,10 @@ if Z_percent and S_MVA and Vbase_kV and Vtest_V:
         # ---- Ensaio de curto
         Z_pu    = Z_percent / 100.0
         S_VA    = S_MVA * 1e6
-        Vbase_kV = VAT if lado_ensaio == "AT" else VBT
+        Vbase_kV = 0
+        if lado_ensaio == "AT":
+            Vbase_kV = VAT
+            else Vbase_kV = VBT
         Vbase_V = Vbase_kV * 1000.0
 
         # Tensão em pu referida à base informada
