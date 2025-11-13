@@ -113,7 +113,7 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
     
         # Esperado no secundário (Dyn1 = desloca -30°)
         sec_angles = prim_angles - 30.0 + 180.0
-        sec_angles = (sec_angles + 180) % 360   # normaliza para [-180,180]
+        sec_angles = (sec_angles + 180) % 360 - 180   # normaliza para [-180,180]
     
         # Monta tabela
         rows = []
