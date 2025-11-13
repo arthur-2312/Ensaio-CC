@@ -112,7 +112,7 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         prim_angles = np.array([ang_IA, ang_IB, ang_IC])
     
         # Esperado no secundário (Dyn1 = desloca -30°)
-        sec_angles = prim_angles - 30.0
+        sec_angles = prim_angles - 30.0 + 180.0
         sec_angles = (sec_angles + 180) % 360 - 180  # normaliza para [-180,180]
     
         # Monta tabela
@@ -126,39 +126,36 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         df_tc = pd.DataFrame(rows)
         st.markdown("**Tabela de Verificação dos TC's**")
         st.dataframe(df_tc, hide_index=True)
-    
-        # Alerta se diferença entre fases não for ~120°
-        diffs = np.diff(sorted(prim_angles))
-        if not all(abs(d - 120) < 10 for d in diffs):  # tolerância de 10°
-            st.warning("⚠️ Atenção: As fases do primário não parecem estar defasadas corretamente (120°).")
-        else:
-            st.success("✅ Sequência do primário parece correta.")
+
     # -------------------------
-    # PERGUNTA SOBRE AS FASES
+    # DIAGRAMA FASORIAL DAS CORRENTES
     # -------------------------
-    st.subheader("As fases bateram?")
-    fase_ok = st.radio("Selecione:", ["Sim", "Não"])
-    
-    if fase_ok == "Não":
-        st.markdown("Informe como as fases foram encontradas no **secundário**:")
-        col1, col2, col3 = st.columns(3)
-        fase_sec_A = col1.selectbox("Posição da fase A:", ["A", "B", "C"])
-        fase_sec_B = col2.selectbox("Posição da fase B:", ["A", "B", "C"])
-        fase_sec_C = col3.selectbox("Posição da fase C:", ["A", "B", "C"])
-    
-        # Diagnóstico
-        esperado = ["A", "B", "C"]  # sequência correta
-        achado = [fase_sec_A, fase_sec_B, fase_sec_C]
-    
-        erros = []
-        for i, (exp, ach) in enumerate(zip(esperado, achado)):
-            if exp != ach:
-                erros.append(f"A fase {exp} está na posição da {ach}")
-    
-        if erros:
-            st.error("⚠️ Problemas encontrados:")
-            for e in erros:
-                st.write(f"- {e}")
-        else:
-            st.success("✅ As fases estão corretas!")
-        
+    st.subheader("Diagrama Fasorial das Correntes")
+    st.caption("Primário (vermelho) e Secundário (azul)")
+
+    # Magnitude normalizada (1.0)
+    mag = 1.0
+    xP, yP = phasor_xy(mag, prim_angles)
+    xS, yS = phasor_xy(mag, sec_angles)
+
+    fig, ax = plt.subplots(figsize=(7,7))
+
+    # Primário
+    for xi, yi, lab in zip(xP, yP, fases):
+        ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
+        ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=10)
+
+    # Secundário
+    for xi, yi, lab in zip(xS, yS, fases_sec):
+        ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
+        ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=10)
+
+    # Eixos
+    ax.axhline(0, color="black", linewidth=1)
+    ax.axvline(0, color="black", linewidth=1)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("Real")
+    ax.set_ylabel("Imag")
+    ax.grid(True, linestyle=":")
+
+    st.pyplot(fig)
