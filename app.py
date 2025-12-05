@@ -147,7 +147,7 @@ if 'btn_tc' in locals() and btn_tc:
     xS, yS = phasor_xy(mag, sec_angles)
 
     fig, ax = plt.subplots(figsize=(4,4))
-
+    
     # Primário
     for xi, yi, lab in zip(xP, yP, fases):
         ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
@@ -166,3 +166,4 @@ if 'btn_tc' in locals() and btn_tc:
     ax.set_ylabel("Imag")
     ax.grid(True, linestyle=":")
     st.pyplot(fig)
+    st.pyplot(fig, clear_figure=True)
