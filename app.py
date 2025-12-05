@@ -27,10 +27,6 @@ with st.form("inputs"):
         VAT  = st.number_input("Tensão nominal do lado de Alta [kV]:", min_value=0.1, max_value=50000.0, value=None, step=0.1)
         lado_ensaio = st.radio("Selecione o lado do ensaio:", ["AT", "BT"])
 
-    # Fator de potência estimado do ensaio (opcional)
-    st.markdown("**Opcional:** informe o fator de potência estimado do ensaio de curto (tipicamente baixo).")
-    fp_ensaio = st.number_input("Fator de potência do ensaio (fp):", min_value=0.01, max_value=1.0, value=0.25, step=0.01)
-
     btn = st.form_submit_button("Calcular")
 
 # -------------------------
@@ -82,17 +78,10 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         S_ensaio_VA = SQRT3 * Vtest_V * I_cc_A
         S_ensaio_kVA = S_ensaio_VA / 1000.0
 
-        # Potência ativa estimada (kW) com fp informado (opcional)
-        P_ensaio_kW = S_ensaio_kVA * fp_ensaio
-
-        # Potência reativa (kVAr), garantindo não-negatividade numérica
-        Q2 = max(S_ensaio_kVA**2 - P_ensaio_kW**2, 0.0)
-        Q_ensaio_kVAr = np.sqrt(Q2)
-
         st.subheader("Resultados do Ensaio de Curto-Circuito")
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("Corrente de Linha (F-F) [A]", f"{I_cc_A:,.2f}")
+        c1.metric("Corrente  de Linha (F-F) [A]", f"{I_cc_A:,.2f}")
         # Corrente de fase (considerando ligação do lado ensaiado)
         if lado_ensaio == "AT":  # AT é delta → Ifase = Ilinha/√3
             I_fase_A = I_cc_A / SQRT3
@@ -104,8 +93,6 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         # Cards de potência
         p1, p2, p3 = st.columns(3)
         p1.metric("Potência Aparente do Ensaio [kVA]", f"{S_ensaio_kVA:,.2f}")
-        p2.metric("Potência Ativa Estimada [kW]", f"{P_ensaio_kW:,.2f}", help="Calculada com o fator de potência informado.")
-        p3.metric("Potência Reativa Estimada [kVAr]", f"{Q_ensaio_kVAr:,.2f}")
 
         # Nota técnica
         st.caption(
