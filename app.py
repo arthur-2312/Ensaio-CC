@@ -137,34 +137,43 @@ if 'btn_tc' in locals() and btn_tc:
     st.dataframe(df_tc, hide_index=True)
 
     # -------------------------
-    # DIAGRAMA FASORIAL DAS CORRENTES
+    # DIAGRAMA FASORIAL DAS CORRENTES (compacto)
     # -------------------------
     st.subheader("Diagrama Fasorial das Correntes")
     st.caption("Primário (vermelho) e Secundário (azul)")
-
+    
     mag = 1.0
     xP, yP = phasor_xy(mag, prim_angles)
     xS, yS = phasor_xy(mag, sec_angles)
-
-    fig, ax = plt.subplots(figsize=(4,4))
+    
+    fig, ax = plt.subplots(figsize=(4, 4), dpi=100)  # tamanho compacto
     
     # Primário
-    for xi, yi, lab in zip(xP, yP, fases):
+    for xi, yi, lab in zip(xP, yP, ["IA", "IB", "IC"]):
         ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
-        ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=10)
-
+        ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=9)
+    
     # Secundário
-    for xi, yi, lab in zip(xS, yS, fases_sec):
+    for xi, yi, lab in zip(xS, yS, ["Ia", "Ib", "Ic"]):
         ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
-        ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=10)
-
-    # Eixos
+        ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=9)
+    
+    # Eixos e limites fixos (evita autoscale exagerado)
     ax.axhline(0, color="black", linewidth=1)
     ax.axvline(0, color="black", linewidth=1)
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlim(-1.2, 1.2)
+    ax.set_ylim(-1.2, 1.2)
+    ax.set_aspect("equal", adjustable="box")  # se ainda ficar grande, troque por "datalim"
+    
     ax.set_xlabel("Real")
     ax.set_ylabel("Imag")
     ax.grid(True, linestyle=":")
     
-    n1 = st.columns(1)
-    c3.metric(st.pyplot(fig, clear_figure=True))
+    fig.tight_layout(pad=0.5)
+    
+    # Render centralizado, sem ocupar a página inteira
+    cL, cM, cR = st.columns([1, 2, 1])
+    with cM:
+        st.pyplot(fig, clear_figure=True)
+    plt.close(fig)
+
