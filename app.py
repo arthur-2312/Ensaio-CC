@@ -146,7 +146,8 @@ if 'btn_tc' in locals() and btn_tc:
     # Eixos e limites fixos (evita autoscale exagerado)
     ax.axhline(0, color="black", linewidth=1)
     ax.axvline(0, color="black", linewidth=1)
-
+    ax.set_xlim(-1.2, 1.2)
+    ax.set_ylim(-1.2, 1.2)
     ax.set_aspect("equal", adjustable="box")  # se ainda ficar grande, troque por "datalim"
     
     ax.grid(True, linestyle=":")
