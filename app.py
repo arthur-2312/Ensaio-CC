@@ -146,7 +146,7 @@ if 'btn_tc' in locals() and btn_tc:
     xP, yP = phasor_xy(mag, prim_angles)
     xS, yS = phasor_xy(mag, sec_angles)
 
-    fig, ax = plt.subplots(figsize=(7,7))
+    fig, ax = plt.subplots(figsize=(4,4))
 
     # Primário
     for xi, yi, lab in zip(xP, yP, fases):
