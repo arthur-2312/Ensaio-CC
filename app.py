@@ -150,8 +150,7 @@ if 'btn_tc' in locals() and btn_tc:
     ax.set_ylim(-1.2, 1.2)
     ax.set_aspect("equal", adjustable="box")  # se ainda ficar grande, troque por "datalim"
     
-    ax.set_xlabel("Real")
-    ax.set_ylabel("Imag")
+
     ax.grid(True, linestyle=":")
     
     fig.tight_layout(pad=0.5)
