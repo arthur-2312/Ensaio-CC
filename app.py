@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 # -------------------------
 st.set_page_config(page_title="ENSAIO DE CURTO", layout="wide")
 st.title("Ensaio de Curto")
-
 st.markdown("Preencha os dados e clique em **Calcular**.")
 
 # -------------------------
@@ -52,7 +51,7 @@ def mag_ang(z):
     return mag, ang
 
 # -------------------------
-# CÁLCULO + PLOT + TABELA
+# CÁLCULO + CARDS
 # -------------------------
 if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
     if btn:
@@ -73,9 +72,8 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         # Corrente do ensaio (linha, trifásico)
         I_cc_A = I_pu * I_base_A
 
-        # ---- Potências do ensaio
-        # Potência aparente trifásica durante o ensaio (VA)
-        S_ensaio_VA = SQRT3 * Vtest_V * I_cc_A
+        # ---- Potência aparente do ensaio (trifásica)
+        S_ensaio_VA  = SQRT3 * Vtest_V * I_cc_A
         S_ensaio_kVA = S_ensaio_VA / 1000.0
 
         st.subheader("Resultados do Ensaio de Curto-Circuito")
@@ -93,13 +91,28 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         # Cards de potência
         p1, p2, p3 = st.columns(3)
         p1.metric("Potência Aparente do Ensaio [kVA]", f"{S_ensaio_kVA:,.2f}")
+        p2.empty()
+        p3.empty()
 
         # Nota técnica
         st.caption(
-            "📌 Se você ajustar Vtest para que I_cc = corrente nominal, então P_ensaio representa as perdas no cobre em plena carga. "
-            "Sem separar R% e X%, o valor ativo é estimado via fator de potência."
+            "📌 Se você ajustar Vtest para que I_cc = corrente nominal, então P_ensaio medido no wattímetro representa as perdas no cobre em plena carga. "
+            "Aqui exibimos S (kVA). Para P (kW) e Q (kVAr) exatos, informe R% e X% ou meça potência durante o ensaio."
         )
 
+# -------------------------
+# FORMULÁRIO PARA ÂNGULOS DE CORRENTE
+# -------------------------
+st.subheader("Verificação de Ligação dos TC's")
+st.markdown("Informe os ângulos medidos no **primário** (em graus):")
+
+with st.form("tc_check"):
+    col1, col2, col3 = st.columns(3)
+    ang_IA = col1.number_input("Ângulo IA (°):", min_value=-180.0, max_value=180.0, step=1.0)
+    ang_IB = col2.number_input("Ângulo IB (°):", min_value=-180.0, max_value=180.0, step=1.0)
+    ang_IC = col3.number_input("Ângulo IC (°):", min_value=-180.0, max_value=180.0, step=1.0)
+
+    btn_tc = st.form_submit_button("Verificar")
 
 # -------------------------
 # TABELA + DIAGRAMA FASORIAL LADO A LADO
@@ -125,8 +138,8 @@ if 'btn_tc' in locals() and btn_tc:
         })
     df_tc = pd.DataFrame(rows)
 
-    # --- Layout em colunas (lado a lado)
-    col_tab, col_plot = st.columns([1, 1])  # ajuste [2,1] p/ tabela maior
+    # Layout em colunas (tabela mais larga)
+    col_tab, col_plot = st.columns([2, 1])
 
     with col_tab:
         st.markdown("**Tabela de Verificação dos TC's**")
@@ -136,7 +149,7 @@ if 'btn_tc' in locals() and btn_tc:
         st.markdown("**Diagrama Fasorial das Correntes**")
         st.caption("Primário (vermelho) e Secundário (azul)")
 
-        # Preparação dos pontos
+        # Preparação dos pontos do fasorial
         mag = 1.0
         xP, yP = phasor_xy(mag, prim_angles)
         xS, yS = phasor_xy(mag, sec_angles)
@@ -164,10 +177,9 @@ if 'btn_tc' in locals() and btn_tc:
         ax.set_ylabel("Imag")
         ax.grid(True, linestyle=":")
 
+        # Layout e render
         fig.tight_layout(pad=0.5)
         st.pyplot(fig, clear_figure=True)
         plt.close(fig)
 else:
     st.info("Preencha os ângulos e clique em **Verificar** para ver a tabela e o diagrama lado a lado.")
-
-
