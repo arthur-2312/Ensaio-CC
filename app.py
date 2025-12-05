@@ -1,3 +1,4 @@
+
 # app.py
 import streamlit as st
 import numpy as np
@@ -7,12 +8,10 @@ import matplotlib.pyplot as plt
 # -------------------------
 # CONFIG & TÍTULO
 # -------------------------
-st.set_page_config(page_title="ENSAIO DE CURTO ", layout="wide")
+st.set_page_config(page_title="ENSAIO DE CURTO", layout="wide")
 st.title("Ensaio de Curto")
 
-st.markdown(
-    "Preencha os dados e clique em **Calcular**. "
-)
+st.markdown("Preencha os dados e clique em **Calcular**.")
 
 # -------------------------
 # FORMULÁRIO DE ENTRADA
@@ -27,7 +26,10 @@ with st.form("inputs"):
         VBT  = st.number_input("Tensão nominal do lado de Baixa [kV]:", min_value=0.1, max_value=50000.0, value=None, step=0.1)
         VAT  = st.number_input("Tensão nominal do lado de Alta [kV]:", min_value=0.1, max_value=50000.0, value=None, step=0.1)
         lado_ensaio = st.radio("Selecione o lado do ensaio:", ["AT", "BT"])
-    
+
+    # Fator de potência estimado do ensaio (opcional)
+    st.markdown("**Opcional:** informe o fator de potência estimado do ensaio de curto (tipicamente baixo).")
+    fp_ensaio = st.number_input("Fator de potência do ensaio (fp):", min_value=0.01, max_value=1.0, value=0.25, step=0.01)
 
     btn = st.form_submit_button("Calcular")
 
@@ -53,23 +55,17 @@ def mag_ang(z):
     ang = (ang + 180) % 360 - 180  # normaliza para [-180,180]
     return mag, ang
 
-if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
 # -------------------------
 # CÁLCULO + PLOT + TABELA
 # -------------------------
+if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
     if btn:
         # ---- Ensaio de curto
         Z_pu    = Z_percent / 100.0
         S_VA    = S_MVA * 1e6
-        Vbase_kV = 0
 
-        if lado_ensaio == "AT":
-            Vbase_kV = VAT
-        else:
-            Vbase_kV = VBT
-
-        Vbase_V = Vbase_kV * 1000.0
-
+        Vbase_kV = VAT if lado_ensaio == "AT" else VBT
+        Vbase_V  = Vbase_kV * 1000.0
 
         # Tensão em pu referida à base informada
         V_pu = Vtest_V / Vbase_V
@@ -78,54 +74,80 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
         # Corrente base (trifásica, linha)
         I_base_A = S_VA / (SQRT3 * Vbase_V)
 
-        # Corrente do ensaio
+        # Corrente do ensaio (linha, trifásico)
         I_cc_A = I_pu * I_base_A
 
-        st.subheader("Corrente de Curto-Circuito")
-        
-        # Calcula corrente de fase
-        if lado_ensaio == "AT":  # AT é delta
+        # ---- Potências do ensaio
+        # Potência aparente trifásica durante o ensaio (VA)
+        S_ensaio_VA = SQRT3 * Vtest_V * I_cc_A
+        S_ensaio_kVA = S_ensaio_VA / 1000.0
+
+        # Potência ativa estimada (kW) com fp informado (opcional)
+        P_ensaio_kW = S_ensaio_kVA * fp_ensaio
+
+        # Potência reativa (kVAr), garantindo não-negatividade numérica
+        Q2 = max(S_ensaio_kVA**2 - P_ensaio_kW**2, 0.0)
+        Q_ensaio_kVAr = np.sqrt(Q2)
+
+        st.subheader("Resultados do Ensaio de Curto-Circuito")
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Corrente de Linha (F-F) [A]", f"{I_cc_A:,.2f}")
+        # Corrente de fase (considerando ligação do lado ensaiado)
+        if lado_ensaio == "AT":  # AT é delta → Ifase = Ilinha/√3
             I_fase_A = I_cc_A / SQRT3
-        else:  # BT é estrela
+        else:  # BT é estrela → Ifase = Ilinha
             I_fase_A = I_cc_A
-        
-        c1, c2 = st.columns(2)
-        c1.metric("Corrente de Linha (Fase-Fase) [A]", f"{I_cc_A:,.2f}")
-        c2.metric("Corrente de Fase (Fase-Terra) [A]", f"{I_fase_A:,.2f}")
+        c2.metric("Corrente de Fase (F-T) [A]", f"{I_fase_A:,.2f}")
+        c3.metric("Tensão aplicada [V]", f"{Vtest_V:,.2f}")
+
+        # Cards de potência
+        p1, p2, p3 = st.columns(3)
+        p1.metric("Potência Aparente do Ensaio [kVA]", f"{S_ensaio_kVA:,.2f}")
+        p2.metric("Potência Ativa Estimada [kW]", f"{P_ensaio_kW:,.2f}", help="Calculada com o fator de potência informado.")
+        p3.metric("Potência Reativa Estimada [kVAr]", f"{Q_ensaio_kVAr:,.2f}")
+
+        # Nota técnica
+        st.caption(
+            "📌 Se você ajustar Vtest para que I_cc = corrente nominal, então P_ensaio representa as perdas no cobre em plena carga. "
+            "Sem separar R% e X%, o valor ativo é estimado via fator de potência."
+        )
 
 # -------------------------
 # NOVO FORMULÁRIO PARA ÂNGULOS DE CORRENTE
 # -------------------------
-    st.subheader("Verificação de Ligação dos TC's")
-    st.markdown("Informe os ângulos medidos no **primário** (em graus):")
-    
-    with st.form("tc_check"):
-        col1, col2, col3 = st.columns(3)
-        ang_IA = col1.number_input("Ângulo IA (°):", min_value=-180.0, max_value=180.0, step=1.0)
-        ang_IB = col2.number_input("Ângulo IB (°):", min_value=-180.0, max_value=180.0, step=1.0)
-        ang_IC = col3.number_input("Ângulo IC (°):", min_value=-180.0, max_value=180.0, step=1.0)
-    
-        btn_tc = st.form_submit_button("Verificar")
-    
-    if btn_tc:
-        # Ângulos primário
-        prim_angles = np.array([ang_IA, ang_IB, ang_IC])
-    
-        # Esperado no secundário (Dyn1 = desloca -30°)
-        sec_angles = prim_angles - 30.0 + 180.0
-        sec_angles = (sec_angles + 180) % 360 - 180   # normaliza para [-180,180]
-    
-        # Monta tabela
-        rows = []
-        fases = ["IA", "IB", "IC"]
-        fases_sec = ["Ia", "Ib", "Ic"]
-        for f1, f2, a1, a2 in zip(fases, fases_sec, prim_angles, sec_angles):
-            rows.append({"Fase Primário": f1, "Ângulo Primário (°)": round(a1, 1),
-                         "Fase Secundário": f2, "Ângulo Esperado (°)": round(a2, 1)})
-    
-        df_tc = pd.DataFrame(rows)
-        st.markdown("**Tabela de Verificação dos TC's**")
-        st.dataframe(df_tc, hide_index=True)
+st.subheader("Verificação de Ligação dos TC's")
+st.markdown("Informe os ângulos medidos no **primário** (em graus):")
+
+with st.form("tc_check"):
+    col1, col2, col3 = st.columns(3)
+    ang_IA = col1.number_input("Ângulo IA (°):", min_value=-180.0, max_value=180.0, step=1.0)
+    ang_IB = col2.number_input("Ângulo IB (°):", min_value=-180.0, max_value=180.0, step=1.0)
+    ang_IC = col3.number_input("Ângulo IC (°):", min_value=-180.0, max_value=180.0, step=1.0)
+
+    btn_tc = st.form_submit_button("Verificar")
+
+if 'btn_tc' in locals() and btn_tc:
+    # Ângulos primário
+    prim_angles = np.array([ang_IA, ang_IB, ang_IC])
+
+    # Esperado no secundário (Dyn1 = desloca -30°)
+    sec_angles = prim_angles - 30.0 + 180.0
+    sec_angles = (sec_angles + 180) % 360 - 180   # normaliza para [-180,180]
+
+    # Monta tabela
+    rows = []
+    fases = ["IA", "IB", "IC"]
+    fases_sec = ["Ia", "Ib", "Ic"]
+    for f1, f2, a1, a2 in zip(fases, fases_sec, prim_angles, sec_angles):
+        rows.append({
+            "Fase Primário": f1, "Ângulo Primário (°)": round(a1, 1),
+            "Fase Secundário": f2, "Ângulo Esperado (°)": round(a2, 1)
+        })
+
+    df_tc = pd.DataFrame(rows)
+    st.markdown("**Tabela de Verificação dos TC's**")
+    st.dataframe(df_tc, hide_index=True)
 
     # -------------------------
     # DIAGRAMA FASORIAL DAS CORRENTES
@@ -133,7 +155,6 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
     st.subheader("Diagrama Fasorial das Correntes")
     st.caption("Primário (vermelho) e Secundário (azul)")
 
-    # Magnitude normalizada (1.0)
     mag = 1.0
     xP, yP = phasor_xy(mag, prim_angles)
     xS, yS = phasor_xy(mag, sec_angles)
@@ -158,4 +179,3 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
     ax.set_ylabel("Imag")
     ax.grid(True, linestyle=":")
 
-    st.pyplot(fig)
