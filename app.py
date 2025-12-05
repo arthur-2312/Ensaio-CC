@@ -165,4 +165,6 @@ if 'btn_tc' in locals() and btn_tc:
     ax.set_xlabel("Real")
     ax.set_ylabel("Imag")
     ax.grid(True, linestyle=":")
-    st.pyplot(fig, clear_figure=True)
+    
+    n1 = st.columns(1)
+    c3.metric(st.pyplot(fig, clear_figure=True))
