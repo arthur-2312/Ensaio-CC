@@ -100,80 +100,74 @@ if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
             "Sem separar R% e X%, o valor ativo é estimado via fator de potência."
         )
 
+
 # -------------------------
-# NOVO FORMULÁRIO PARA ÂNGULOS DE CORRENTE
+# TABELA + DIAGRAMA FASORIAL LADO A LADO
 # -------------------------
-st.subheader("Verificação de Ligação dos TC's")
-st.markdown("Informe os ângulos medidos no **primário** (em graus):")
-
-with st.form("tc_check"):
-    col1, col2, col3 = st.columns(3)
-    ang_IA = col1.number_input("Ângulo IA (°):", min_value=-180.0, max_value=180.0, step=1.0)
-    ang_IB = col2.number_input("Ângulo IB (°):", min_value=-180.0, max_value=180.0, step=1.0)
-    ang_IC = col3.number_input("Ângulo IC (°):", min_value=-180.0, max_value=180.0, step=1.0)
-
-    btn_tc = st.form_submit_button("Verificar")
-
 if 'btn_tc' in locals() and btn_tc:
     # Ângulos primário
     prim_angles = np.array([ang_IA, ang_IB, ang_IC])
 
-    # Esperado no secundário (Dyn1 = desloca -30°)
+    # Esperado no secundário (Dyn1 = desloca -30° e inverte 180° de relação)
     sec_angles = prim_angles - 30.0 + 180.0
     sec_angles = (sec_angles + 180) % 360 - 180   # normaliza para [-180,180]
 
     # Monta tabela
-    rows = []
     fases = ["IA", "IB", "IC"]
     fases_sec = ["Ia", "Ib", "Ic"]
+    rows = []
     for f1, f2, a1, a2 in zip(fases, fases_sec, prim_angles, sec_angles):
         rows.append({
-            "Fase Primário": f1, "Ângulo Primário (°)": round(a1, 1),
-            "Fase Secundário": f2, "Ângulo Esperado (°)": round(a2, 1)
+            "Fase Primário": f1,
+            "Ângulo Primário (°)": round(float(a1), 1),
+            "Fase Secundário": f2,
+            "Ângulo Esperado (°)": round(float(a2), 1)
         })
-
     df_tc = pd.DataFrame(rows)
-    st.markdown("**Tabela de Verificação dos TC's**")
-    st.dataframe(df_tc, hide_index=True)
 
-    # -------------------------
-    # DIAGRAMA FASORIAL DAS CORRENTES (compacto)
-    # -------------------------
-    st.subheader("Diagrama Fasorial das Correntes")
-    st.caption("Primário (vermelho) e Secundário (azul)")
-    
-    mag = 1.0
-    xP, yP = phasor_xy(mag, prim_angles)
-    xS, yS = phasor_xy(mag, sec_angles)
-    
-    fig, ax = plt.subplots(figsize=(4, 4), dpi=100)  # tamanho compacto
-    
-    # Primário
-    for xi, yi, lab in zip(xP, yP, ["IA", "IB", "IC"]):
-        ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
-        ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=9)
-    
-    # Secundário
-    for xi, yi, lab in zip(xS, yS, ["Ia", "Ib", "Ic"]):
-        ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
-        ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=9)
-    
-    # Eixos e limites fixos (evita autoscale exagerado)
-    ax.axhline(0, color="black", linewidth=1)
-    ax.axvline(0, color="black", linewidth=1)
-    ax.set_xlim(-1.2, 1.2)
-    ax.set_ylim(-1.2, 1.2)
-    ax.set_aspect("equal", adjustable="box")  # se ainda ficar grande, troque por "datalim"
-    
-    ax.set_xlabel("Real")
-    ax.set_ylabel("Imag")
-    ax.grid(True, linestyle=":")
-    
-    fig.tight_layout(pad=0.5)
-    
-    # Render centralizado, sem ocupar a página inteira
-    cL, cM, cR = st.columns([1, 2, 1])
-    with cM:
+    # --- Layout em colunas (lado a lado)
+    col_tab, col_plot = st.columns([1, 1])  # ajuste [2,1] p/ tabela maior
+
+    with col_tab:
+        st.markdown("**Tabela de Verificação dos TC's**")
+        st.dataframe(df_tc, hide_index=True, use_container_width=True)
+
+    with col_plot:
+        st.markdown("**Diagrama Fasorial das Correntes**")
+        st.caption("Primário (vermelho) e Secundário (azul)")
+
+        # Preparação dos pontos
+        mag = 1.0
+        xP, yP = phasor_xy(mag, prim_angles)
+        xS, yS = phasor_xy(mag, sec_angles)
+
+        # Figura compacta
+        fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
+
+        # Primário
+        for xi, yi, lab in zip(xP, yP, fases):
+            ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
+            ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=9)
+
+        # Secundário
+        for xi, yi, lab in zip(xS, yS, fases_sec):
+            ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
+            ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=9)
+
+        # Eixos e limites (evita ocupar a tela toda)
+        ax.axhline(0, color="black", linewidth=1)
+        ax.axvline(0, color="black", linewidth=1)
+        ax.set_xlim(-1.2, 1.2)
+        ax.set_ylim(-1.2, 1.2)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_xlabel("Real")
+        ax.set_ylabel("Imag")
+        ax.grid(True, linestyle=":")
+
+        fig.tight_layout(pad=0.5)
         st.pyplot(fig, clear_figure=True)
-    plt.close(fig)
+        plt.close(fig)
+else:
+    st.info("Preencha os ângulos e clique em **Verificar** para ver a tabela e o diagrama lado a lado.")
+
 
