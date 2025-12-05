@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 # -------------------------
 st.set_page_config(page_title="ENSAIO DE CURTO", layout="wide")
 st.title("Ensaio de Curto")
+
 st.markdown("Preencha os dados e clique em **Calcular**.")
 
 # -------------------------
@@ -38,70 +39,55 @@ def phasor_xy(mag, ang_deg):
     return mag*np.cos(ang), mag*np.sin(ang)
 
 def line_to_line_from_phases(x, y):
-    """
-    Recebe arrays x,y (VA,VB,VC) como tensões de fase (pu) e retorna complexos VAB,VBC,VCA.
-    """
     VA, VB, VC = x[0] + 1j*y[0], x[1] + 1j*y[1], x[2] + 1j*y[2]
     return np.array([VA - VB, VB - VC, VC - VA], dtype=complex)
 
 def mag_ang(z):
     mag = np.abs(z)
     ang = np.degrees(np.angle(z))
-    ang = (ang + 180) % 360 - 180  # normaliza para [-180,180]
+    ang = (ang + 180) % 360 - 180
     return mag, ang
 
 # -------------------------
-# CÁLCULO + CARDS
+# CÁLCULO + PLOT + TABELA
 # -------------------------
 if Z_percent and S_MVA and VAT and VBT and lado_ensaio and Vtest_V:
     if btn:
-        # ---- Ensaio de curto
         Z_pu    = Z_percent / 100.0
         S_VA    = S_MVA * 1e6
 
         Vbase_kV = VAT if lado_ensaio == "AT" else VBT
         Vbase_V  = Vbase_kV * 1000.0
 
-        # Tensão em pu referida à base informada
         V_pu = Vtest_V / Vbase_V
         I_pu = V_pu / Z_pu
 
-        # Corrente base (trifásica, linha)
         I_base_A = S_VA / (SQRT3 * Vbase_V)
-
-        # Corrente do ensaio (linha, trifásico)
         I_cc_A = I_pu * I_base_A
 
-        # ---- Potência aparente do ensaio (trifásica)
-        S_ensaio_VA  = SQRT3 * Vtest_V * I_cc_A
+        S_ensaio_VA = SQRT3 * Vtest_V * I_cc_A
         S_ensaio_kVA = S_ensaio_VA / 1000.0
 
         st.subheader("Resultados do Ensaio de Curto-Circuito")
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("Corrente  de Linha (F-F) [A]", f"{I_cc_A:,.2f}")
-        # Corrente de fase (considerando ligação do lado ensaiado)
-        if lado_ensaio == "AT":  # AT é delta → Ifase = Ilinha/√3
+        c1.metric("Corrente de Linha (F-F) [A]", f"{I_cc_A:,.2f}")
+        if lado_ensaio == "AT":
             I_fase_A = I_cc_A / SQRT3
-        else:  # BT é estrela → Ifase = Ilinha
+        else:
             I_fase_A = I_cc_A
         c2.metric("Corrente de Fase (F-T) [A]", f"{I_fase_A:,.2f}")
         c3.metric("Tensão aplicada [V]", f"{Vtest_V:,.2f}")
 
-        # Cards de potência
         p1, p2, p3 = st.columns(3)
         p1.metric("Potência Aparente do Ensaio [kVA]", f"{S_ensaio_kVA:,.2f}")
-        p2.empty()
-        p3.empty()
 
-        # Nota técnica
         st.caption(
-            "📌 Se você ajustar Vtest para que I_cc = corrente nominal, então P_ensaio medido no wattímetro representa as perdas no cobre em plena carga. "
-            "Aqui exibimos S (kVA). Para P (kW) e Q (kVAr) exatos, informe R% e X% ou meça potência durante o ensaio."
+            "📌 Se você ajustar Vtest para que I_cc = corrente nominal, então P_ensaio representa as perdas no cobre em plena carga."
         )
 
 # -------------------------
-# FORMULÁRIO PARA ÂNGULOS DE CORRENTE
+# NOVO FORMULÁRIO PARA ÂNGULOS DE CORRENTE
 # -------------------------
 st.subheader("Verificação de Ligação dos TC's")
 st.markdown("Informe os ângulos medidos no **primário** (em graus):")
@@ -114,72 +100,51 @@ with st.form("tc_check"):
 
     btn_tc = st.form_submit_button("Verificar")
 
-# -------------------------
-# TABELA + DIAGRAMA FASORIAL LADO A LADO
-# -------------------------
 if 'btn_tc' in locals() and btn_tc:
-    # Ângulos primário
     prim_angles = np.array([ang_IA, ang_IB, ang_IC])
-
-    # Esperado no secundário (Dyn1 = desloca -30° e inverte 180° de relação)
     sec_angles = prim_angles - 30.0 + 180.0
-    sec_angles = (sec_angles + 180) % 360 - 180   # normaliza para [-180,180]
+    sec_angles = (sec_angles + 180) % 360 - 180
 
-    # Monta tabela
+    rows = []
     fases = ["IA", "IB", "IC"]
     fases_sec = ["Ia", "Ib", "Ic"]
-    rows = []
     for f1, f2, a1, a2 in zip(fases, fases_sec, prim_angles, sec_angles):
         rows.append({
             "Fase Primário": f1,
-            "Ângulo Primário (°)": round(float(a1), 1),
+            "Ângulo Primário (°)": round(a1, 1),
             "Fase Secundário": f2,
-            "Ângulo Esperado (°)": round(float(a2), 1)
+            "Ângulo Esperado (°)": round(a2, 1)
         })
+
     df_tc = pd.DataFrame(rows)
+    st.markdown("**Tabela de Verificação dos TC's**")
+    st.dataframe(df_tc, hide_index=True)
 
-    # Layout em colunas (tabela mais larga)
-    col_tab, col_plot = st.columns([2, 1])
+    # -------------------------
+    # DIAGRAMA FASORIAL DAS CORRENTES
+    # -------------------------
+    st.subheader("Diagrama Fasorial das Correntes")
+    st.caption("Primário (vermelho) e Secundário (azul)")
 
-    with col_tab:
-        st.markdown("**Tabela de Verificação dos TC's**")
-        st.dataframe(df_tc, hide_index=True, use_container_width=True)
+    mag = 1.0
+    xP, yP = phasor_xy(mag, prim_angles)
+    xS, yS = phasor_xy(mag, sec_angles)
 
-    with col_plot:
-        st.markdown("**Diagrama Fasorial das Correntes**")
-        st.caption("Primário (vermelho) e Secundário (azul)")
+    fig, ax = plt.subplots(figsize=(7,7))
 
-        # Preparação dos pontos do fasorial
-        mag = 1.0
-        xP, yP = phasor_xy(mag, prim_angles)
-        xS, yS = phasor_xy(mag, sec_angles)
+    for xi, yi, lab in zip(xP, yP, fases):
+        ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
+        ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=10)
 
-        # Figura compacta
-        fig, ax = plt.subplots(figsize=(4, 4), dpi=100)
+    for xi, yi, lab in zip(xS, yS, fases_sec):
+        ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
+        ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=10)
 
-        # Primário
-        for xi, yi, lab in zip(xP, yP, fases):
-            ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="red")
-            ax.text(xi*1.06, yi*1.06, lab, color="red", fontsize=9)
+    ax.axhline(0, color="black", linewidth=1)
+    ax.axvline(0, color="black", linewidth=1)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("Real")
+    ax.set_ylabel("Imag")
+    ax.grid(True, linestyle=":")
 
-        # Secundário
-        for xi, yi, lab in zip(xS, yS, fases_sec):
-            ax.plot([0, xi], [0, yi], marker="o", linewidth=2, color="blue")
-            ax.text(xi*1.06, yi*1.06, lab, color="blue", fontsize=9)
-
-        # Eixos e limites (evita ocupar a tela toda)
-        ax.axhline(0, color="black", linewidth=1)
-        ax.axvline(0, color="black", linewidth=1)
-        ax.set_xlim(-1.2, 1.2)
-        ax.set_ylim(-1.2, 1.2)
-        ax.set_aspect("equal", adjustable="box")
-        ax.set_xlabel("Real")
-        ax.set_ylabel("Imag")
-        ax.grid(True, linestyle=":")
-
-        # Layout e render
-        fig.tight_layout(pad=0.5)
-        st.pyplot(fig, clear_figure=True)
-        plt.close(fig)
-else:
-    st.info("Preencha os ângulos e clique em **Verificar** para ver a tabela e o diagrama lado a lado.")
+    st.pyplot(fig)
